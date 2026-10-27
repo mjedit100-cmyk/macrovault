@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.4.0.0
+;@Ahk2Exe-SetVersion 1.4.1.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.4.0"
+global APP_VERSION := "1.4.1"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -22,7 +22,11 @@ global mainWnd := ""
 global splashWnd := ""
 global splashTitle := ""
 global splashBar := ""
+global splashBarTrack := ""
 global splashHttp := ""
+global splashBarX := 48
+global splashBarY := 342
+global splashBarMax := 544
 global libWnd := ""
 global settingsWnd := ""
 global playCtrl := ""
@@ -80,10 +84,23 @@ Startup() {
     SetTimer(HoverTimer, 40)
     OpenSplash()
     PlayIntro()
+    SplashStatus("Checking for updates...")
     found := ReadManifestResult()
+    if !IsObject(found) || !found.remote {
+        found := FetchManifestNow()
+        if IsObject(found)
+            catalog := found
+    }
     if IsUpdateAvailable(found) {
+        SplashStatus("Update found — v" found.app.version)
+        Sleep 500
         if ApplyAppUpdate(found.app.version, found.app.exeUrl)
             return
+        SplashStatus("Update failed — opening current build")
+        Sleep 1600
+    } else if IsObject(found) && found.remote {
+        SplashStatus("You're on v" APP_VERSION)
+        Sleep 450
     }
     CloseSplash()
     BuildMain()
@@ -268,7 +285,7 @@ ApplyWindowIcon(wnd) {
 }
 
 OpenSplash() {
-    global splashWnd, splashTitle, splashBar
+    global splashWnd, splashTitle, splashBar, splashBarTrack, splashBarX, splashBarY, splashBarMax
     splashWnd := MkGui("+AlwaysOnTop -Caption +ToolWindow -Resize")
     art := AssetFile("splash.jpg")
     if FileExist(art)
@@ -278,9 +295,45 @@ OpenSplash() {
     splashWnd.AddText("x0 y292 w640 h2 Background7c5cff", "")
     splashWnd.SetFont("s26 w700 cF4F2FF", "Segoe UI")
     splashTitle := splashWnd.AddText("x28 y302 w584 h32 Center Background0B0B12", APP_NAME)
-    splashWnd.AddText("x48 y342 w544 h4 Background242433", "")
-    splashBar := splashWnd.AddText("x48 y342 w1 h4 Background7c5cff", "")
+    splashBarX := 48
+    splashBarY := 342
+    splashBarMax := 544
+    splashBarTrack := splashWnd.AddText("x" splashBarX " y" splashBarY " w" splashBarMax " h4 Background242433", "")
+    splashBar := splashWnd.AddText("x" splashBarX " y" splashBarY " w1 h4 Background7c5cff", "")
     ShowHiddenAt(splashWnd, 640, 360)
+}
+
+SplashStatus(text) {
+    global splashTitle, splashWnd
+    if !IsObject(splashTitle)
+        return
+    try WinSetTransparent(255, "ahk_id " splashWnd.Hwnd)
+    splashTitle.SetFont("s16 w600 cF4F2FF", "Segoe UI")
+    splashTitle.Text := text
+    splashTitle.Move(28, 304, 584, 32)
+    Sleep 30
+}
+
+SweepProgress(pct := "") {
+    global splashBar, splashBarX, splashBarY, splashBarMax
+    if !IsObject(splashBar)
+        return
+    static sweep := 1
+    static dir := 1
+    if (pct != "" && IsNumber(pct)) {
+        w := Max(1, Round(splashBarMax * Max(0, Min(100, Number(pct))) / 100))
+        splashBar.Move(splashBarX, splashBarY, w, 4)
+        return
+    }
+    sweep += dir * 28
+    if (sweep >= splashBarMax) {
+        sweep := splashBarMax
+        dir := -1
+    } else if (sweep <= 1) {
+        sweep := 1
+        dir := 1
+    }
+    splashBar.Move(splashBarX, splashBarY, sweep, 4)
 }
 
 PlayIntro() {
@@ -304,7 +357,7 @@ PlayIntro() {
 }
 
 CloseSplash() {
-    global splashWnd, splashTitle, splashBar
+    global splashWnd, splashTitle, splashBar, splashBarTrack
     if !IsObject(splashWnd)
         return
     FadeHwnd(splashWnd.Hwnd, 255, 0, 200)
@@ -312,6 +365,7 @@ CloseSplash() {
     splashWnd := ""
     splashTitle := ""
     splashBar := ""
+    splashBarTrack := ""
 }
 
 BuildMain() {
@@ -968,14 +1022,15 @@ ManualCheck(*) {
         FillLibrary()
     if IsUpdateAvailable(parsed) {
         if !A_IsCompiled {
-            libNote.Text := "v" parsed.app.version " is published. This copy cannot replace itself."
+            libNote.Text := "v" parsed.app.version " is out. Run the compiled .exe to auto-install."
             return
         }
-        libNote.Text := "Updating to v" parsed.app.version "..."
+        libNote.Text := "Downloading v" parsed.app.version "..."
+        Sleep 200
         if !ApplyAppUpdate(parsed.app.version, parsed.app.exeUrl) && IsObject(libNote)
-            libNote.Text := "Update download failed."
+            libNote.Text := "Update failed. Download the release manually."
     } else if IsObject(libNote) {
-        libNote.Text := "You're on the latest version."
+        libNote.Text := "You're on the latest version (v" APP_VERSION ")."
     }
 }
 
@@ -1151,7 +1206,7 @@ BeginManifestRequest() {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
         req.Open("GET", ManifestUrl(), true)
-        req.SetTimeouts(2500, 2500, 4000, 6000)
+        req.SetTimeouts(4000, 4000, 8000, 12000)
         ApplyHttpHeaders(req)
         req.SetRequestHeader("Cache-Control", "no-cache")
         req.Send()
@@ -1164,9 +1219,12 @@ BeginManifestRequest() {
 ReadManifestResult() {
     global catalog, splashHttp
     if IsObject(splashHttp) {
-        try {
-            if !splashHttp.WaitForResponse(0)
-                splashHttp.WaitForResponse(1.5)
+        started := A_TickCount
+        while !splashHttp.WaitForResponse(0) {
+            if (A_TickCount - started > 10000)
+                break
+            SweepProgress()
+            Sleep 30
         }
         text := ""
         code := 0
@@ -1191,7 +1249,7 @@ FetchManifestNow() {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
         req.Open("GET", ManifestUrl(), false)
-        req.SetTimeouts(2500, 2500, 5000, 8000)
+        req.SetTimeouts(4000, 4000, 8000, 12000)
         ApplyHttpHeaders(req)
         req.SetRequestHeader("Cache-Control", "no-cache")
         req.Send()
@@ -1243,57 +1301,128 @@ IsUpdateAvailable(m) {
 
 ApplyAppUpdate(version, url) {
     global appReady
-    if !A_IsCompiled
+    if !A_IsCompiled {
+        SplashStatus("Update v" version " needs the .exe build")
+        Sleep 900
         return false
+    }
     if !IsObject(splashWnd)
         OpenSplash()
     try WinSetTransparent(255, "ahk_id " splashWnd.Hwnd)
-    splashTitle.SetFont("s18 w600 cF4F2FF", "Segoe UI")
-    splashTitle.Text := "Updating to v" version "..."
-    splashTitle.Move(28, 304, 584, 32)
+    SplashStatus("Downloading v" version "...")
+    LogUpdate("begin " version " " url)
     dest := A_Temp "\" APP_NAME "-new.exe"
     if FileExist(dest)
         try FileDelete(dest)
-    if !DownloadExe(url, dest)
+    if !DownloadExe(url, dest) {
+        SplashStatus("Download failed")
+        LogUpdate("download failed")
+        Sleep 1000
         return false
-    if !LaunchSwap(dest)
+    }
+    SplashStatus("Installing v" version "...")
+    SweepProgress(100)
+    Sleep 350
+    if !LaunchSwap(dest) {
+        SplashStatus("Install helper failed")
+        LogUpdate("swap failed")
+        Sleep 1000
         return false
+    }
+    SplashStatus("Restarting...")
+    LogUpdate("swap launched")
     appReady := true
-    Sleep 250
+    Sleep 400
     ExitApp()
 }
 
+LogUpdate(msg) {
+    try FileAppend(A_Now " " msg "`n", SettingsDir() "\update.log", "UTF-8")
+}
+
 DownloadExe(url, path) {
+    if DownloadExeCurl(url, path) && LooksLikeExe(path)
+        return true
+    if DownloadExeWinHttp(url, path) && LooksLikeExe(path)
+        return true
+    if DownloadExePowerShell(url, path) && LooksLikeExe(path)
+        return true
+    return false
+}
+
+DownloadExeCurl(url, path) {
+    curl := A_WinDir "\System32\curl.exe"
+    if !FileExist(curl)
+        return false
+    SplashStatus("Downloading... (curl)")
+    cmd := Format('"{1}" -L --fail --retry 2 --connect-timeout 8 -A "{2}" -o "{3}" "{4}"', curl, APP_NAME, path, url)
     try {
+        pid := 0
+        Run(cmd, , "Hide", &pid)
+        started := A_TickCount
+        while ProcessExist(pid) {
+            if (A_TickCount - started > 180000) {
+                try ProcessClose(pid)
+                return false
+            }
+            SweepProgress()
+            Sleep 40
+        }
+        return LooksLikeExe(path)
+    } catch {
+        return false
+    }
+}
+
+DownloadExeWinHttp(url, path) {
+    try {
+        SplashStatus("Downloading... (http)")
         req := ComObject("WinHttp.WinHttpRequest.5.1")
         req.Open("GET", url, true)
-        req.SetTimeouts(4000, 4000, 20000, 120000)
+        req.SetTimeouts(8000, 8000, 30000, 180000)
+        try req.Option[6] := true ; follow redirects
         ApplyHttpHeaders(req, InStr(url, "api.github.com"))
         req.Send()
-        sweep := 1
-        dir := 1
         started := A_TickCount
         while !req.WaitForResponse(0) {
-            if (A_TickCount - started > 120000) {
+            if (A_TickCount - started > 180000) {
                 try req.Abort()
                 return false
             }
-            sweep += dir * 24
-            if (sweep >= 520) {
-                sweep := 520
-                dir := -1
-            } else if (sweep <= 1) {
-                sweep := 1
-                dir := 1
-            }
-            if IsObject(splashBar)
-                splashBar.Move(40, 292, sweep, 4)
-            Sleep 20
+            SweepProgress()
+            Sleep 30
         }
         if (req.Status != 200)
             return false
         if !SaveResponseBody(req, path)
             return false
+        return LooksLikeExe(path)
+    } catch {
+        return false
+    }
+}
+
+DownloadExePowerShell(url, path) {
+    try {
+        SplashStatus("Downloading... (ps)")
+        script := A_Temp "\" APP_NAME "-dl.ps1"
+        if FileExist(script)
+            FileDelete(script)
+        f := FileOpen(script, "w", "UTF-8")
+        f.Write('Invoke-WebRequest -Uri "' url '" -OutFile "' path '" -UserAgent "' APP_NAME '"`r`n')
+        f.Close()
+        pid := 0
+        Run('powershell -NoProfile -ExecutionPolicy Bypass -File "' script '"', , "Hide", &pid)
+        started := A_TickCount
+        while ProcessExist(pid) {
+            if (A_TickCount - started > 180000) {
+                try ProcessClose(pid)
+                return false
+            }
+            SweepProgress()
+            Sleep 40
+        }
+        try FileDelete(script)
         return LooksLikeExe(path)
     } catch {
         return false

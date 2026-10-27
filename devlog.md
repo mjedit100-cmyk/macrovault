@@ -1,5 +1,10 @@
 # MacroVault Devlog
 
+## [1.4.1] - 2026-10-27
+### Fixed
+- Update splash now shows Checking / Downloading / Installing / Failed instead of failing quietly
+- Downloads try curl, then WinHttp, then PowerShell so GitHub release assets actually land
+
 ## [1.4.0] - 2026-10-27
 ### Changed
 - Fresh cutout-style art on splash, home, and library
