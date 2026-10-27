@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.3.1.0
+;@Ahk2Exe-SetVersion 1.4.0.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.3.1"
+global APP_VERSION := "1.4.0"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -42,6 +42,8 @@ global libWarn := ""
 global libNote := ""
 global libIds := []
 global libBusy := false
+global devlogWnd := ""
+global tagCtrl := ""
 
 OnExit(AppOnExit)
 Persistent(true)
@@ -85,7 +87,7 @@ Startup() {
     }
     CloseSplash()
     BuildMain()
-    ShowAt(mainWnd, 560, 340)
+    ShowAt(mainWnd, 640, 400)
     WinSetTransparent(0, "ahk_id " mainWnd.Hwnd)
     FadeHwnd(mainWnd.Hwnd, 0, 255, 220)
     try WinSetTransparent("Off", "ahk_id " mainWnd.Hwnd)
@@ -107,6 +109,7 @@ EnsureAssets() {
     FileInstall "assets\splash.jpg", dir "\splash.jpg", 1
     FileInstall "assets\main-girl.jpg", dir "\main-girl.jpg", 1
     FileInstall "assets\avatar.jpg", dir "\avatar.jpg", 1
+    FileInstall "devlog.md", dir "\devlog.md", 1
 }
 
 AppOnExit(*) {
@@ -269,13 +272,15 @@ OpenSplash() {
     splashWnd := MkGui("+AlwaysOnTop -Caption +ToolWindow -Resize")
     art := AssetFile("splash.jpg")
     if FileExist(art)
-        splashWnd.AddPic("x0 y0 w600 h340", art)
-    splashWnd.AddText("x0 y228 w600 h112 Background0D0D14", "")
-    splashWnd.SetFont("s28 w700 cF4F2FF", "Segoe UI")
-    splashTitle := splashWnd.AddText("x24 y240 w552 h48 Center Background0D0D14", APP_NAME)
-    splashWnd.AddText("x40 y304 w520 h4 Background2A2A38", "")
-    splashBar := splashWnd.AddText("x40 y304 w1 h4 Background7c5cff", "")
-    ShowHiddenAt(splashWnd, 600, 340)
+        splashWnd.AddPic("x0 y0 w640 h360", art)
+    ; Thin footer so her face stays visible above it
+    splashWnd.AddText("x0 y292 w640 h68 Background0B0B12", "")
+    splashWnd.AddText("x0 y292 w640 h2 Background7c5cff", "")
+    splashWnd.SetFont("s26 w700 cF4F2FF", "Segoe UI")
+    splashTitle := splashWnd.AddText("x28 y302 w584 h32 Center Background0B0B12", APP_NAME)
+    splashWnd.AddText("x48 y342 w544 h4 Background242433", "")
+    splashBar := splashWnd.AddText("x48 y342 w1 h4 Background7c5cff", "")
+    ShowHiddenAt(splashWnd, 640, 360)
 }
 
 PlayIntro() {
@@ -285,14 +290,14 @@ PlayIntro() {
     while (A_TickCount - start < duration) {
         t := EaseOut((A_TickCount - start) / duration)
         try WinSetTransparent(Round(255 * t), "ahk_id " splashWnd.Hwnd)
-        splashTitle.Move(24, Round(252 - 10 * t), 552, 48)
-        splashBar.Move(40, 304, Max(1, Round(520 * t)), 4)
+        splashTitle.Move(28, Round(308 - 6 * t), 584, 32)
+        splashBar.Move(48, 342, Max(1, Round(544 * t)), 4)
         Sleep 15
     }
     try WinSetTransparent(255, "ahk_id " splashWnd.Hwnd)
-    splashTitle.SetFont("s20 w600 cF4F2FF", "Segoe UI")
+    splashTitle.SetFont("s18 w600 cF4F2FF", "Segoe UI")
     splashTitle.Text := "Welcome to " APP_NAME
-    splashTitle.Move(24, 246, 552, 48)
+    splashTitle.Move(28, 304, 584, 32)
     hold := A_TickCount + 1000
     while (A_TickCount < hold)
         Sleep 15
@@ -310,27 +315,50 @@ CloseSplash() {
 }
 
 BuildMain() {
-    global mainWnd, nameCtrl, channelCtrl, playCtrl, statusCtrl
+    global mainWnd, nameCtrl, channelCtrl, playCtrl, statusCtrl, tagCtrl
     mainWnd := MkGui("-Resize -MaximizeBox")
+    ; Accent rail + soft stage panels
+    mainWnd.AddText("x0 y0 w8 h400 Background7c5cff", "")
+    mainWnd.AddText("x8 y0 w632 h72 Background101018", "")
+    mainWnd.AddText("x8 y72 w392 h252 Background181824", "")
+    mainWnd.AddText("x400 y72 w240 h252 Background101018", "")
+    mainWnd.AddText("x8 y324 w632 h76 Background101018", "")
+
+    avatar := AssetFile("avatar.jpg")
+    if FileExist(avatar)
+        mainWnd.AddPic("x24 y14 w44 h44", avatar)
+
+    mainWnd.SetFont("s22 w700 cF4F2FF", "Segoe UI")
+    mainWnd.AddText("x80 y12 w300 h34 Background101018", APP_NAME)
+    mainWnd.SetFont("s9 cA79BFF", "Segoe UI")
+    mainWnd.AddText("x80 y44 w300 h18 Background101018", "macros · cute chaos · v" APP_VERSION)
+
+    ; Character cutout stage (3:4 slot so nothing stretches weird)
     art := AssetFile("main-girl.jpg")
     if FileExist(art)
-        mainWnd.AddPic("x372 y16 w168 h224", art)
-    mainWnd.SetFont("s20 w700 cF4F2FF", "Segoe UI")
-    mainWnd.AddText("x24 y16 w330 h36 Background14141c", APP_NAME)
+        mainWnd.AddPic("x418 y80 w206 h274", art)
+
+    mainWnd.SetFont("s9 c8E8A9E", "Segoe UI")
+    mainWnd.AddText("x28 y88 w340 h16 Background181824", "NOW LOADED")
+    mainWnd.SetFont("s17 w700 cF4F2FF", "Segoe UI")
+    nameCtrl := mainWnd.AddText("x28 y108 w340 h30 Background181824", "")
+    mainWnd.SetFont("s9 w700 c14141c", "Segoe UI")
+    channelCtrl := mainWnd.AddText("x28 y144 w96 h22 Center 0x200 Background3DD68C", "")
     mainWnd.SetFont("s9 c9A97AD", "Segoe UI")
-    mainWnd.AddText("x24 y52 w330 h18 Background14141c", "v" APP_VERSION)
-    mainWnd.AddText("x24 y76 w330 h2 Background7c5cff", "")
-    mainWnd.SetFont("s15 cF4F2FF", "Segoe UI")
-    nameCtrl := mainWnd.AddText("x24 y90 w330 h28 Background14141c", "")
-    mainWnd.SetFont("s10 w600 c3DD68C", "Segoe UI")
-    channelCtrl := mainWnd.AddText("x24 y120 w330 h20 Background14141c", "")
-    mainWnd.SetFont("s16 cFFFFFF", "Segoe UI")
-    playCtrl := AddButton(mainWnd, 24, 156, 330, 52, "PLAY", "7c5cff", "9480ff", "FFFFFF", OnPlay)
-    mainWnd.SetFont("s11 cF4F2FF", "Segoe UI")
-    AddButton(mainWnd, 24, 222, 158, 40, "LIBRARY", "2a2a38", "3a3a4c", "F4F2FF", ShowLibrary)
-    AddButton(mainWnd, 196, 222, 158, 40, "SETTINGS", "2a2a38", "3a3a4c", "F4F2FF", ShowSettings)
-    mainWnd.SetFont("s10 c8E8A9E", "Segoe UI")
-    statusCtrl := mainWnd.AddText("x24 y286 w516 h24 Background14141c", "Idle")
+    tagCtrl := mainWnd.AddText("x136 y146 w240 h18 Background181824", "")
+
+    mainWnd.SetFont("s17 w700 cFFFFFF", "Segoe UI")
+    playCtrl := AddButton(mainWnd, 28, 184, 340, 54, "PLAY", "7c5cff", "9480ff", "FFFFFF", OnPlay)
+    mainWnd.SetFont("s10 cF4F2FF", "Segoe UI")
+    AddButton(mainWnd, 28, 250, 108, 38, "LIBRARY", "2a2a38", "3a3a4c", "F4F2FF", ShowLibrary)
+    AddButton(mainWnd, 144, 250, 108, 38, "SETTINGS", "2a2a38", "3a3a4c", "F4F2FF", ShowSettings)
+    AddButton(mainWnd, 260, 250, 108, 38, "DEVLOG", "3a2a55", "52406e", "F4F2FF", ShowDevlog)
+
+    mainWnd.SetFont("s9 c8E8A9E", "Segoe UI")
+    mainWnd.AddText("x28 y304 w340 h16 Background181824", "STATUS")
+    mainWnd.SetFont("s11 c8E8A9E", "Segoe UI")
+    statusCtrl := mainWnd.AddText("x28 y338 w592 h36 0x200 Background1A1A28", "  Idle")
+
     mainWnd.OnEvent("Close", HideMain)
     ApplyWindowIcon(mainWnd)
     RefreshMain()
@@ -367,12 +395,15 @@ RefreshMain() {
     meta := ScriptModules[id].meta
     nameCtrl.Text := meta.name
     channelCtrl.Text := meta.channel
-    channelCtrl.SetFont("s10 w600 c" ChannelColor(meta.channel), "Segoe UI")
+    channelCtrl.Opt("Background" ChannelBg(meta.channel))
+    channelCtrl.SetFont("s9 w700 c" ChannelFg(meta.channel), "Segoe UI")
+    if IsObject(tagCtrl)
+        tagCtrl.Text := meta.game "  ·  v" meta.version
     if macroActive
         SetStatusActive()
 }
 
-ChannelColor(channel) {
+ChannelBg(channel) {
     if (channel = "Stable")
         return "3DD68C"
     if (channel = "Beta")
@@ -380,19 +411,29 @@ ChannelColor(channel) {
     return "FF8A3D"
 }
 
+ChannelFg(channel) {
+    return "14141c"
+}
+
+ChannelColor(channel) {
+    return ChannelBg(channel)
+}
+
 SetStatusIdle() {
     if !IsObject(statusCtrl)
         return
-    statusCtrl.Text := "Idle"
-    statusCtrl.SetFont("s10 c8E8A9E", "Segoe UI")
+    statusCtrl.Text := "  Idle  ·  waiting for PLAY"
+    statusCtrl.Opt("Background1A1A28")
+    statusCtrl.SetFont("s11 c8E8A9E", "Segoe UI")
 }
 
 SetStatusActive() {
     if !IsObject(statusCtrl)
         return
     meta := ScriptModules[Settings.selected].meta
-    statusCtrl.Text := "Active: " meta.name " on key " GetScriptKey(Settings.selected)
-    statusCtrl.SetFont("s10 c3DD68C", "Segoe UI")
+    statusCtrl.Text := "  Active  ·  " meta.name " on " GetScriptKey(Settings.selected)
+    statusCtrl.Opt("Background163A28")
+    statusCtrl.SetFont("s11 c3DD68C", "Segoe UI")
 }
 
 SetPlayButton(active) {
@@ -643,13 +684,17 @@ ShowLibrary(*) {
     if IsObject(libWnd)
         return
     libWnd := MkGui("-Resize -MaximizeBox")
+    libWnd.AddText("x0 y0 w8 h470 Background7c5cff", "")
+    libWnd.AddText("x8 y0 w732 h58 Background101018", "")
     avatar := AssetFile("avatar.jpg")
     if FileExist(avatar)
-        libWnd.AddPic("x20 y10 w36 h36", avatar)
-    libWnd.SetFont("s16 w700 cF4F2FF", "Segoe UI")
-    libWnd.AddText("x66 y14 w634 h28 Background14141c", "Library")
+        libWnd.AddPic("x24 y10 w38 h38", avatar)
+    libWnd.SetFont("s18 w700 cF4F2FF", "Segoe UI")
+    libWnd.AddText("x74 y10 w500 h28 Background101018", "Library")
+    libWnd.SetFont("s9 cA79BFF", "Segoe UI")
+    libWnd.AddText("x74 y36 w500 h16 Background101018", "Click a row to load it. Feels quick. Not an executor.")
     libWnd.SetFont("s10 cE8E6F2", "Segoe UI")
-    libList := libWnd.AddListView("x20 y54 w680 h226 Background14141c cE8E6F2", ["Name", "Game/App", "Channel", "Version", "Status"])
+    libList := libWnd.AddListView("x24 y70 w696 h220 Background181824 cE8E6F2", ["Name", "Game/App", "Channel", "Version", "Status"])
     libList.ModifyCol(1, 230)
     libList.ModifyCol(2, 110)
     libList.ModifyCol(3, 80)
@@ -657,23 +702,76 @@ ShowLibrary(*) {
     libList.ModifyCol(5, 150)
     libList.OnEvent("ItemSelect", OnLibSelect)
     libList.OnEvent("DoubleClick", (*) => ChooseScript())
-    libDesc := libWnd.AddText("x20 y290 w680 h44 Background14141c", "")
+    libWnd.AddText("x24 y302 w696 h90 Background181824", "")
+    libDesc := libWnd.AddText("x36 y312 w672 h40 Background181824", "")
     libWnd.SetFont("s9 cE6B450", "Segoe UI")
-    libWarn := libWnd.AddText("x20 y336 w680 h18 Background14141c", "")
+    libWarn := libWnd.AddText("x36 y354 w672 h16 Background181824", "")
     libWnd.SetFont("s9 c9A97AD", "Segoe UI")
-    libNote := libWnd.AddText("x20 y356 w680 h18 Background14141c", "")
+    libNote := libWnd.AddText("x36 y372 w672 h16 Background181824", "")
     libWnd.SetFont("s10 cFFFFFF", "Segoe UI")
-    AddButton(libWnd, 20, 388, 150, 36, "LOAD", "7c5cff", "9480ff", "FFFFFF", ChooseScript)
+    AddButton(libWnd, 24, 410, 150, 38, "LOAD", "7c5cff", "9480ff", "FFFFFF", ChooseScript)
     libWnd.SetFont("s10 cF4F2FF", "Segoe UI")
-    AddButton(libWnd, 182, 388, 190, 36, "Check for updates", "2a2a38", "3a3a4c", "F4F2FF", ManualCheck)
-    AddButton(libWnd, 550, 388, 150, 36, "CLOSE", "2a2a38", "3a3a4c", "F4F2FF", (*) => CloseLibrary(libWnd))
+    AddButton(libWnd, 186, 410, 190, 38, "Check for updates", "2a2a38", "3a3a4c", "F4F2FF", ManualCheck)
+    AddButton(libWnd, 570, 410, 150, 38, "CLOSE", "2a2a38", "3a3a4c", "F4F2FF", (*) => CloseLibrary(libWnd))
     libWnd.OnEvent("Close", CloseLibrary)
     ApplyWindowIcon(libWnd)
     FillLibrary()
-    ShowAt(libWnd, 720, 444)
+    ShowAt(libWnd, 740, 470)
     WinSetTransparent(0, "ahk_id " libWnd.Hwnd)
     FadeHwnd(libWnd.Hwnd, 0, 255, 160)
     try WinSetTransparent("Off", "ahk_id " libWnd.Hwnd)
+}
+
+ShowDevlog(*) {
+    global devlogWnd
+    if IsObject(devlogWnd)
+        return
+    devlogWnd := MkGui("-Resize -MaximizeBox")
+    devlogWnd.AddText("x0 y0 w8 h460 Background7c5cff", "")
+    devlogWnd.AddText("x8 y0 w552 h58 Background101018", "")
+    avatar := AssetFile("avatar.jpg")
+    if FileExist(avatar)
+        devlogWnd.AddPic("x24 y10 w38 h38", avatar)
+    devlogWnd.SetFont("s18 w700 cF4F2FF", "Segoe UI")
+    devlogWnd.AddText("x74 y10 w400 h28 Background101018", "Devlog")
+    devlogWnd.SetFont("s9 cA79BFF", "Segoe UI")
+    devlogWnd.AddText("x74 y36 w400 h16 Background101018", "What shipped, newest first")
+    body := ReadDevlog()
+    box := devlogWnd.AddEdit("x24 y72 w516 h320 ReadOnly Multi +VScroll Background181824 cE8E6F2", body)
+    box.Value := body
+    try SendMessage(0xB1, -1, 0, , "ahk_id " box.Hwnd) ; clear selection
+    try box.Focus()
+    try SendMessage(0xB1, -1, 0, , "ahk_id " box.Hwnd)
+    devlogWnd.SetFont("s10 cF4F2FF", "Segoe UI")
+    AddButton(devlogWnd, 390, 406, 150, 36, "CLOSE", "2a2a38", "3a3a4c", "F4F2FF", (*) => CloseDevlog(devlogWnd))
+    devlogWnd.OnEvent("Close", CloseDevlog)
+    ApplyWindowIcon(devlogWnd)
+    ShowAt(devlogWnd, 560, 460)
+    WinSetTransparent(0, "ahk_id " devlogWnd.Hwnd)
+    FadeHwnd(devlogWnd.Hwnd, 0, 255, 160)
+    try WinSetTransparent("Off", "ahk_id " devlogWnd.Hwnd)
+}
+
+CloseDevlog(thisWnd, *) {
+    global devlogWnd
+    if !IsObject(devlogWnd)
+        return true
+    FadeHwnd(devlogWnd.Hwnd, 255, 0, 120)
+    DestroyWnd(devlogWnd)
+    devlogWnd := ""
+    return true
+}
+
+ReadDevlog() {
+    path := AssetFile("devlog.md")
+    if FileExist(path) {
+        try return FileRead(path, "UTF-8")
+    }
+    localPath := A_ScriptDir "\devlog.md"
+    if FileExist(localPath) {
+        try return FileRead(localPath, "UTF-8")
+    }
+    return "# MacroVault Devlog`n`nNo devlog file found."
 }
 
 CloseLibrary(thisWnd, *) {
@@ -1150,9 +1248,9 @@ ApplyAppUpdate(version, url) {
     if !IsObject(splashWnd)
         OpenSplash()
     try WinSetTransparent(255, "ahk_id " splashWnd.Hwnd)
-    splashTitle.SetFont("s22 w600 cF4F2FF", "Segoe UI")
+    splashTitle.SetFont("s18 w600 cF4F2FF", "Segoe UI")
     splashTitle.Text := "Updating to v" version "..."
-    splashTitle.Move(0, 130, 600, 56)
+    splashTitle.Move(28, 304, 584, 32)
     dest := A_Temp "\" APP_NAME "-new.exe"
     if FileExist(dest)
         try FileDelete(dest)
