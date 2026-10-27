@@ -1,0 +1,40 @@
+{
+  "app": {
+    "version": "1.0.0",
+    "exeUrl": "https://github.com/mjedit100-cmyk/macrovault/releases/download/v1.0.0/MacroVault.exe"
+  },
+  "scripts": [
+    {
+      "id": "flick",
+      "name": "Flick Macro",
+      "game": "Roblox",
+      "channel": "Stable",
+      "version": "1.0.0",
+      "description": "Original proven version. Single press per hop; presses during a hop are ignored."
+    },
+    {
+      "id": "flick-queue",
+      "name": "Flick Macro (Queue)",
+      "game": "Roblox",
+      "channel": "Beta",
+      "version": "0.1.0",
+      "description": "Untested. A press during a hop is queued and fires right after it."
+    },
+    {
+      "id": "flick-chain",
+      "name": "Flick Macro (Chain)",
+      "game": "Roblox",
+      "channel": "WIP",
+      "version": "0.1.0",
+      "description": "Tested, little improvement. Shifts the delay earlier on rapid presses, but presses are still dropped."
+    },
+    {
+      "id": "flick-restart",
+      "name": "Flick Macro (Restart)",
+      "game": "Roblox",
+      "channel": "WIP",
+      "version": "0.1.0",
+      "description": "Tested, chains did not work. Every press cancels the current hop and restarts it."
+    }
+  ]
+}
