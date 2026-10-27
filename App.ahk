@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.4.1.0
+;@Ahk2Exe-SetVersion 1.4.2.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.4.1"
+global APP_VERSION := "1.4.2"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -92,11 +92,11 @@ Startup() {
             catalog := found
     }
     if IsUpdateAvailable(found) {
-        SplashStatus("Update found — v" found.app.version)
+        SplashStatus("Update found â€” v" found.app.version)
         Sleep 500
         if ApplyAppUpdate(found.app.version, found.app.exeUrl)
             return
-        SplashStatus("Update failed — opening current build")
+        SplashStatus("Update failed â€” opening current build")
         Sleep 1600
     } else if IsObject(found) && found.remote {
         SplashStatus("You're on v" APP_VERSION)
@@ -385,7 +385,7 @@ BuildMain() {
     mainWnd.SetFont("s22 w700 cF4F2FF", "Segoe UI")
     mainWnd.AddText("x80 y12 w300 h34 Background101018", APP_NAME)
     mainWnd.SetFont("s9 cA79BFF", "Segoe UI")
-    mainWnd.AddText("x80 y44 w300 h18 Background101018", "macros · cute chaos · v" APP_VERSION)
+    mainWnd.AddText("x80 y44 w300 h18 Background101018", "macros Â· cute chaos Â· v" APP_VERSION)
 
     ; Character cutout stage (3:4 slot so nothing stretches weird)
     art := AssetFile("main-girl.jpg")
@@ -452,7 +452,7 @@ RefreshMain() {
     channelCtrl.Opt("Background" ChannelBg(meta.channel))
     channelCtrl.SetFont("s9 w700 c" ChannelFg(meta.channel), "Segoe UI")
     if IsObject(tagCtrl)
-        tagCtrl.Text := meta.game "  ·  v" meta.version
+        tagCtrl.Text := meta.game "  Â·  v" meta.version
     if macroActive
         SetStatusActive()
 }
@@ -476,7 +476,7 @@ ChannelColor(channel) {
 SetStatusIdle() {
     if !IsObject(statusCtrl)
         return
-    statusCtrl.Text := "  Idle  ·  waiting for PLAY"
+    statusCtrl.Text := "  Idle  Â·  waiting for PLAY"
     statusCtrl.Opt("Background1A1A28")
     statusCtrl.SetFont("s11 c8E8A9E", "Segoe UI")
 }
@@ -485,7 +485,7 @@ SetStatusActive() {
     if !IsObject(statusCtrl)
         return
     meta := ScriptModules[Settings.selected].meta
-    statusCtrl.Text := "  Active  ·  " meta.name " on " GetScriptKey(Settings.selected)
+    statusCtrl.Text := "  Active  Â·  " meta.name " on " GetScriptKey(Settings.selected)
     statusCtrl.Opt("Background163A28")
     statusCtrl.SetFont("s11 c3DD68C", "Segoe UI")
 }

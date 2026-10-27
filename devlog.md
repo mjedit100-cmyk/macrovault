@@ -1,4 +1,8 @@
-# MacroVault Devlog
+﻿# MacroVault Devlog
+
+## [1.4.2] - 2026-10-27
+### Changed
+- New cute anime girl app icon for the exe and tray
 
 ## [1.4.1] - 2026-10-27
 ### Fixed
@@ -35,3 +39,4 @@
 ### Added
 - First release: splash, PLAY / STOP, Library, Settings, auto-update
 - Four Roblox flick scripts (Stable / Beta / WIP)
+

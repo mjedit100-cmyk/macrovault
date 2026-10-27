@@ -1,7 +1,7 @@
-{
+﻿{
   "app": {
-    "version": "1.4.1",
-    "exeUrl": "https://github.com/mjedit100-cmyk/macrovault/releases/download/v1.4.1/MacroVault.exe"
+    "version": "1.4.2",
+    "exeUrl": "https://github.com/mjedit100-cmyk/macrovault/releases/download/v1.4.2/MacroVault.exe"
   },
   "scripts": [
     {
@@ -46,3 +46,4 @@
     }
   ]
 }
+
