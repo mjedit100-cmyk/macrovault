@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.3.0.0
+;@Ahk2Exe-SetVersion 1.3.1.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.3.0"
+global APP_VERSION := "1.3.1"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -694,9 +694,8 @@ FillLibrary() {
     libBusy := true
     libList.Delete()
     libIds := []
-    source := IsObject(catalog) ? catalog : LocalCatalog()
     currentRow := 0
-    for , entry in source.scripts {
+    for , entry in LibraryScripts() {
         id := Field(entry, "id")
         if (id = "")
             continue
@@ -713,6 +712,44 @@ FillLibrary() {
         ShowLibDetails(currentRow)
     }
     libBusy := false
+}
+
+; Always list every script baked into this exe, then any remote-only "New" rows.
+; A stale GitHub manifest must never hide a script the user already installed.
+LibraryScripts() {
+    remoteById := Map()
+    remoteOrder := []
+    if IsObject(catalog) && HasProp(catalog, "scripts") {
+        for , entry in catalog.scripts {
+            id := Field(entry, "id")
+            if (id = "")
+                continue
+            remoteById[id] := entry
+            remoteOrder.Push(entry)
+        }
+    }
+    scripts := []
+    seen := Map()
+    for , id in ScriptOrder {
+        meta := ScriptModules[id].meta
+        scripts.Push({
+            id: meta.id,
+            name: meta.name,
+            game: meta.game,
+            channel: meta.channel,
+            version: meta.version,
+            description: meta.description
+        })
+        seen[id] := true
+    }
+    for , entry in remoteOrder {
+        id := Field(entry, "id")
+        if (id = "" || seen.Has(id))
+            continue
+        scripts.Push(entry)
+        seen[id] := true
+    }
+    return scripts
 }
 
 StyleList(list) {
@@ -797,9 +834,22 @@ ScriptStatus(entry) {
     id := Field(entry, "id")
     if !ScriptModules.Has(id)
         return "New"
-    if VerGreater(Field(entry, "version"), ScriptModules[id].meta.version)
+    remoteVer := RemoteScriptVersion(id)
+    if (remoteVer = "")
+        remoteVer := Field(entry, "version")
+    if (remoteVer != "" && VerGreater(remoteVer, ScriptModules[id].meta.version))
         return "Update available"
     return "Installed"
+}
+
+RemoteScriptVersion(id) {
+    if !IsObject(catalog) || !HasProp(catalog, "scripts")
+        return ""
+    for , entry in catalog.scripts {
+        if (Field(entry, "id") = id)
+            return Field(entry, "version")
+    }
+    return ""
 }
 
 ManualCheck(*) {
@@ -992,14 +1042,20 @@ ApplyHttpHeaders(req, download := false) {
         req.SetRequestHeader("Accept", "application/octet-stream")
 }
 
+ManifestUrl() {
+    ; Bust GitHub raw CDN cache so the library picks up new scripts after a release.
+    return REPO_RAW_URL "?v=" APP_VERSION "&t=" A_TickCount
+}
+
 BeginManifestRequest() {
     global splashHttp
     splashHttp := ""
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
-        req.Open("GET", REPO_RAW_URL, true)
+        req.Open("GET", ManifestUrl(), true)
         req.SetTimeouts(2500, 2500, 4000, 6000)
         ApplyHttpHeaders(req)
+        req.SetRequestHeader("Cache-Control", "no-cache")
         req.Send()
         splashHttp := req
     } catch {
@@ -1036,9 +1092,10 @@ ReadManifestResult() {
 FetchManifestNow() {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
-        req.Open("GET", REPO_RAW_URL, false)
+        req.Open("GET", ManifestUrl(), false)
         req.SetTimeouts(2500, 2500, 5000, 8000)
         ApplyHttpHeaders(req)
+        req.SetRequestHeader("Cache-Control", "no-cache")
         req.Send()
         if (req.Status != 200)
             return ""
@@ -1514,5 +1571,17 @@ RunSelfTest() {
         if !FileExist(A_ScriptDir "\assets\" name)
             ExitApp(52)
     }
+    catalog := {app: {version: "0.0.1", exeUrl: ""}, scripts: [{id: "flick", name: "old", game: "Roblox", channel: "Stable", version: "0.0.1", description: "stale"}], remote: true}
+    rows := LibraryScripts()
+    if (rows.Length < ScriptOrder.Length)
+        ExitApp(53)
+    foundCombo := false
+    for , entry in rows {
+        if (Field(entry, "id") = "flick-combo")
+            foundCombo := true
+    }
+    if !foundCombo
+        ExitApp(54)
+    catalog := LocalCatalog()
     ExitApp(0)
 }
