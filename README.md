@@ -13,16 +13,16 @@ Settings are saved per Windows user at `%AppData%\MacroVault\settings.ini`. An u
 ## Play
 
 1. Open the exe. A short splash plays, then the main window.
-2. The first script is Flick Macro (Stable). Press **PLAY**. There is no confirm step.
+2. The first script is Flick Macro v2 (Stable). Press **PLAY**. There is no confirm step.
 3. While it is armed, the button turns into a red **STOP**. The status line shows the script and its trigger key.
-4. The trigger (C by default) runs the macro only when `RobloxPlayerBeta.exe` is the active window. Anywhere else, that key behaves normally.
+4. Hold the trigger (C by default) and Flick Macro keeps hopping until you let go. **Flick Jump Combo** skips the auto jump: you jump yourself, then press C for the flick + boost Space only. Macros only run when `RobloxPlayerBeta.exe` is the active window. Anywhere else, that key behaves normally.
 5. **F12** stops the macro and releases keys. It does not close the app.
 6. **Ctrl+Shift+F12** closes the app from anywhere.
 7. The window X hides to the tray. The tray menu is Show, Stop, and Exit.
 
 ## Library and settings
 
-**LIBRARY** lists the catalog from `manifest.json`: name, game, channel, version, and whether it is installed. **SELECT** arms that script for PLAY. Beta and WIP rows warn that they may not behave consistently. A row marked New is not in this exe yet; updating the app installs it.
+**LIBRARY** lists the catalog. Click a row and that script loads immediately. The main window switches to it. If PLAY is already on, the new script takes over without a restart. **LOAD** does the same and closes the library. Beta and WIP rows warn that they may not behave consistently. A row marked New is not in this exe yet; updating the app installs it.
 
 **SETTINGS** is the only thing a player can change:
 

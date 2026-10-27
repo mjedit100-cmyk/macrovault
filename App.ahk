@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.0.0.0
+;@Ahk2Exe-SetVersion 1.2.0.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.0.0"
+global APP_VERSION := "1.2.0"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -47,6 +47,7 @@ OnExit(AppOnExit)
 Persistent(true)
 
 #Include "scripts\flick.ahk"
+#Include "scripts\flick-combo.ahk"
 #Include "scripts\flick-queue.ahk"
 #Include "scripts\flick-chain.ahk"
 #Include "scripts\flick-restart.ahk"
@@ -634,7 +635,7 @@ ShowLibrary(*) {
     libWnd.SetFont("s9 c9A97AD", "Segoe UI")
     libNote := libWnd.AddText("x20 y356 w680 h18 Background14141c", "")
     libWnd.SetFont("s10 cFFFFFF", "Segoe UI")
-    AddButton(libWnd, 20, 388, 150, 36, "SELECT", "7c5cff", "9480ff", "FFFFFF", ChooseScript)
+    AddButton(libWnd, 20, 388, 150, 36, "LOAD", "7c5cff", "9480ff", "FFFFFF", ChooseScript)
     libWnd.SetFont("s10 cF4F2FF", "Segoe UI")
     AddButton(libWnd, 182, 388, 190, 36, "Check for updates", "2a2a38", "3a3a4c", "F4F2FF", ManualCheck)
     AddButton(libWnd, 550, 388, 150, 36, "CLOSE", "2a2a38", "3a3a4c", "F4F2FF", (*) => CloseLibrary(libWnd))
@@ -679,11 +680,11 @@ FillLibrary() {
     StyleList(libList)
     if (currentRow < 1 && libIds.Length > 0)
         currentRow := 1
-    libBusy := false
     if (currentRow > 0) {
         libList.Modify(currentRow, "Select Focus")
         ShowLibDetails(currentRow)
     }
+    libBusy := false
 }
 
 StyleList(list) {
@@ -703,7 +704,7 @@ StyleList(list) {
 OnLibSelect(ctrl, row, selected) {
     if libBusy || !selected
         return
-    ShowLibDetails(row)
+    LoadLibraryRow(row, false)
 }
 
 ShowLibDetails(row) {
@@ -728,9 +729,16 @@ ChooseScript(*) {
         return
     row := libList.GetNext()
     if (row < 1) {
-        libNote.Text := "Select a script first."
+        libNote.Text := "Click a script to load it."
         return
     }
+    LoadLibraryRow(row, true)
+}
+
+LoadLibraryRow(row, closeAfter) {
+    ShowLibDetails(row)
+    if (row < 1 || row > libIds.Length)
+        return
     entry := libIds[row]
     if (ScriptStatus(entry) = "New") {
         libNote.Text := "Updating the app installs it."
@@ -739,12 +747,22 @@ ChooseScript(*) {
     id := Field(entry, "id")
     if !ScriptModules.Has(id)
         return
-    if (Settings.selected != id && macroActive)
-        StopMacro()
-    Settings.selected := id
-    SaveSettings()
-    RefreshMain()
-    CloseLibrary(libWnd)
+    if (Settings.selected != id) {
+        wasActive := macroActive
+        if wasActive
+            try UnregisterTrigger()
+        Settings.selected := id
+        SaveSettings()
+        RefreshMain()
+        if wasActive {
+            try RegisterTrigger()
+            SetPlayButton(true)
+            SetStatusActive()
+        }
+    }
+    libNote.Text := "Loaded."
+    if closeAfter
+        CloseLibrary(libWnd)
 }
 
 ScriptStatus(entry) {
@@ -1362,10 +1380,20 @@ JsonNumber(text, &at) {
 RunSelfTest() {
     if (APP_NAME != "MacroVault")
         ExitApp(2)
-    if (ScriptOrder.Length != 4)
+    if (ScriptOrder.Length != 5)
         ExitApp(10)
-    if (ScriptOrder[1] != "flick" || ScriptOrder[2] != "flick-queue" || ScriptOrder[3] != "flick-chain" || ScriptOrder[4] != "flick-restart")
+    if (ScriptOrder[1] != "flick" || ScriptOrder[2] != "flick-combo" || ScriptOrder[3] != "flick-queue" || ScriptOrder[4] != "flick-chain" || ScriptOrder[5] != "flick-restart")
         ExitApp(11)
+    if (ScriptModules["flick-combo"].meta.maxThreads != 1)
+        ExitApp(48)
+    for , p in ScriptModules["flick-combo"].params {
+        if (p.name = "JumpHold")
+            ExitApp(49)
+        if (p.name = "DelayBeforeFlick" && p.default != 0)
+            ExitApp(50)
+        if (p.name = "BoostHold" && p.default != 40)
+            ExitApp(51)
+    }
     if (ScriptModules["flick"].meta.maxThreads != 1)
         ExitApp(12)
     if (ScriptModules["flick-queue"].meta.maxThreads != 2 || ScriptModules["flick-restart"].meta.maxThreads != 2)
@@ -1384,7 +1412,8 @@ RunSelfTest() {
         "StepDelay", 6,
         "PauseAtEdge", 10,
         "JumpHold", 40,
-        "BoostHold", 40
+        "BoostHold", 40,
+        "LoopGap", 0
     )
     for , p in ScriptModules["flick"].params {
         if (expect.Has(p.name) && p.default != expect[p.name])
@@ -1432,7 +1461,7 @@ RunSelfTest() {
     } catch {
         ExitApp(39)
     }
-    if (m.app.version != APP_VERSION || m.scripts.Length != 4)
+    if (m.app.version != APP_VERSION || m.scripts.Length != 5)
         ExitApp(45)
     for , entry in m.scripts {
         id := entry.id

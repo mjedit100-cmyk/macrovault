@@ -1,5 +1,5 @@
-; Flick Macro (Stable). Timing numbers are the original defaults.
-; The shell owns the hotkey, the stop key, and the timer.
+; Flick Macro (Stable), original v2. Hold the trigger to keep hopping.
+; Timing numbers match the held-key version. The shell owns the hotkey, stop, and timer.
 
 global flickAbort := false
 
@@ -7,9 +7,9 @@ FlickMeta := {
     id: "flick",
     name: "Flick Macro",
     game: "Roblox",
-    version: "1.0.0",
+    version: "2.0.0",
     channel: "Stable",
-    description: "Original proven version. Single press per hop; presses during a hop are ignored.",
+    description: "Original v2. Hold the key to keep hopping. Release to stop.",
     targetExe: "RobloxPlayerBeta.exe",
     defaultKey: "c",
     maxThreads: 1
@@ -22,12 +22,28 @@ FlickParams := [
     {name: "StepDelay", default: 6, min: 1, max: 50},
     {name: "PauseAtEdge", default: 10, min: 0, max: 200},
     {name: "JumpHold", default: 40, min: 0, max: 200},
-    {name: "BoostHold", default: 40, min: 0, max: 200}
+    {name: "BoostHold", default: 40, min: 0, max: 200},
+    {name: "LoopGap", default: 0, min: 0, max: 500}
 ]
 
 RunFlick(params, triggerKey) {
     global flickAbort
     flickAbort := false
+    LoopGap := params["LoopGap"]
+
+    while GetKeyState(triggerKey, "P") {
+        if flickAbort
+            break
+        if !FlickHop(params)
+            break
+        if (LoopGap > 0)
+            Sleep LoopGap
+    }
+    Send "{Space up}"
+}
+
+FlickHop(params) {
+    global flickAbort
 
     DelayBeforeFlick := params["DelayBeforeFlick"]
     FlickDistance := params["FlickDistance"]
@@ -45,13 +61,13 @@ RunFlick(params, triggerKey) {
     Sleep JumpHold
     if flickAbort {
         Send "{Space up}"
-        return
+        return false
     }
     Send "{Space up}"
 
     Sleep DelayBeforeFlick
     if flickAbort
-        return
+        return false
 
     Send "{Space down}"
 
@@ -59,7 +75,7 @@ RunFlick(params, triggerKey) {
     {
         if flickAbort {
             Send "{Space up}"
-            return
+            return false
         }
         DllCall("mouse_event", "UInt", 0x0001, "Int", -stepSize, "Int", 0, "UInt", 0, "UPtr", 0)
         Sleep StepDelay
@@ -67,28 +83,23 @@ RunFlick(params, triggerKey) {
 
     if flickAbort {
         Send "{Space up}"
-        return
+        return false
     }
 
     Sleep Max(PauseAtEdge, BoostHold - Steps * StepDelay)
     Send "{Space up}"
 
     if flickAbort
-        return
+        return false
 
     Loop Steps
     {
         if flickAbort
-            return
+            return false
         DllCall("mouse_event", "UInt", 0x0001, "Int", stepSize, "Int", 0, "UInt", 0, "UPtr", 0)
         Sleep StepDelay
     }
-
-    while GetKeyState(triggerKey, "P") {
-        if flickAbort
-            return
-        Sleep 10
-    }
+    return true
 }
 
 CancelFlick(*) {

@@ -1,7 +1,7 @@
 {
   "app": {
-    "version": "1.0.0",
-    "exeUrl": "https://github.com/mjedit100-cmyk/macrovault/releases/download/v1.0.0/MacroVault.exe"
+    "version": "1.2.0",
+    "exeUrl": "https://github.com/mjedit100-cmyk/macrovault/releases/download/v1.2.0/MacroVault.exe"
   },
   "scripts": [
     {
@@ -9,8 +9,16 @@
       "name": "Flick Macro",
       "game": "Roblox",
       "channel": "Stable",
+      "version": "2.0.0",
+      "description": "Original v2. Hold the key to keep hopping. Release to stop."
+    },
+    {
+      "id": "flick-combo",
+      "name": "Flick Jump Combo",
+      "game": "Roblox",
+      "channel": "Stable",
       "version": "1.0.0",
-      "description": "Original proven version. Single press per hop; presses during a hop are ignored."
+      "description": "You jump yourself. Press the key for the flick + boost Space only. No auto jump before the flick."
     },
     {
       "id": "flick-queue",
