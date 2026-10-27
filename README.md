@@ -12,7 +12,7 @@ Settings are saved per Windows user at `%AppData%\MacroVault\settings.ini`. An u
 
 ## Play
 
-1. Open the exe. A short splash plays, then the main window.
+1. Open the exe. A short splash with art plays, then the main window.
 2. The first script is Flick Macro v2 (Stable). Press **PLAY**. There is no confirm step.
 3. While it is armed, the button turns into a red **STOP**. The status line shows the script and its trigger key.
 4. Hold the trigger (C by default) and Flick Macro keeps hopping until you let go. **Flick Jump Combo** skips the auto jump: you jump yourself, then press C for the flick + boost Space only. Macros only run when `RobloxPlayerBeta.exe` is the active window. Anywhere else, that key behaves normally.

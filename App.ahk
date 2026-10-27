@@ -3,11 +3,11 @@
 ; File properties mirror APP_NAME and APP_VERSION. The running app reads the constants.
 ;@Ahk2Exe-SetName MacroVault
 ;@Ahk2Exe-SetDescription MacroVault
-;@Ahk2Exe-SetVersion 1.2.0.0
+;@Ahk2Exe-SetVersion 1.3.0.0
 ;@Ahk2Exe-SetCompanyName MJ
 
 global APP_NAME := "MacroVault"
-global APP_VERSION := "1.2.0"
+global APP_VERSION := "1.3.0"
 global REPO_RAW_URL := "https://raw.githubusercontent.com/mjedit100-cmyk/macrovault/main/manifest.json"
 
 global ScriptOrder := []
@@ -72,6 +72,7 @@ Startup() {
     DllCall("winmm\timeBeginPeriod", "UInt", 1)
     timerArmed := true
     LoadSettings()
+    EnsureAssets()
     SetupTray()
     try ApplyStopHotkey()
     SetTimer(HoverTimer, 40)
@@ -84,11 +85,28 @@ Startup() {
     }
     CloseSplash()
     BuildMain()
-    ShowAt(mainWnd, 460, 340)
+    ShowAt(mainWnd, 560, 340)
     WinSetTransparent(0, "ahk_id " mainWnd.Hwnd)
     FadeHwnd(mainWnd.Hwnd, 0, 255, 220)
     try WinSetTransparent("Off", "ahk_id " mainWnd.Hwnd)
     appReady := true
+}
+
+AssetDir() {
+    dir := SettingsDir() "\assets"
+    DirCreate(dir)
+    return dir
+}
+
+AssetFile(name) {
+    return AssetDir() "\" name
+}
+
+EnsureAssets() {
+    dir := AssetDir()
+    FileInstall "assets\splash.jpg", dir "\splash.jpg", 1
+    FileInstall "assets\main-girl.jpg", dir "\main-girl.jpg", 1
+    FileInstall "assets\avatar.jpg", dir "\avatar.jpg", 1
 }
 
 AppOnExit(*) {
@@ -249,10 +267,14 @@ ApplyWindowIcon(wnd) {
 OpenSplash() {
     global splashWnd, splashTitle, splashBar
     splashWnd := MkGui("+AlwaysOnTop -Caption +ToolWindow -Resize")
-    splashWnd.SetFont("s32 w700 cF4F2FF", "Segoe UI")
-    splashTitle := splashWnd.AddText("x0 y150 w600 h56 Center Background14141c", APP_NAME)
-    splashWnd.AddText("x40 y292 w520 h4 Background2A2A38", "")
-    splashBar := splashWnd.AddText("x40 y292 w1 h4 Background7c5cff", "")
+    art := AssetFile("splash.jpg")
+    if FileExist(art)
+        splashWnd.AddPic("x0 y0 w600 h340", art)
+    splashWnd.AddText("x0 y228 w600 h112 Background0D0D14", "")
+    splashWnd.SetFont("s28 w700 cF4F2FF", "Segoe UI")
+    splashTitle := splashWnd.AddText("x24 y240 w552 h48 Center Background0D0D14", APP_NAME)
+    splashWnd.AddText("x40 y304 w520 h4 Background2A2A38", "")
+    splashBar := splashWnd.AddText("x40 y304 w1 h4 Background7c5cff", "")
     ShowHiddenAt(splashWnd, 600, 340)
 }
 
@@ -263,14 +285,14 @@ PlayIntro() {
     while (A_TickCount - start < duration) {
         t := EaseOut((A_TickCount - start) / duration)
         try WinSetTransparent(Round(255 * t), "ahk_id " splashWnd.Hwnd)
-        splashTitle.Move(0, Round(150 - 28 * t), 600, 56)
-        splashBar.Move(40, 292, Max(1, Round(520 * t)), 4)
+        splashTitle.Move(24, Round(252 - 10 * t), 552, 48)
+        splashBar.Move(40, 304, Max(1, Round(520 * t)), 4)
         Sleep 15
     }
     try WinSetTransparent(255, "ahk_id " splashWnd.Hwnd)
-    splashTitle.SetFont("s22 w600 cF4F2FF", "Segoe UI")
+    splashTitle.SetFont("s20 w600 cF4F2FF", "Segoe UI")
     splashTitle.Text := "Welcome to " APP_NAME
-    splashTitle.Move(0, 130, 600, 56)
+    splashTitle.Move(24, 246, 552, 48)
     hold := A_TickCount + 1000
     while (A_TickCount < hold)
         Sleep 15
@@ -290,22 +312,25 @@ CloseSplash() {
 BuildMain() {
     global mainWnd, nameCtrl, channelCtrl, playCtrl, statusCtrl
     mainWnd := MkGui("-Resize -MaximizeBox")
+    art := AssetFile("main-girl.jpg")
+    if FileExist(art)
+        mainWnd.AddPic("x372 y16 w168 h224", art)
     mainWnd.SetFont("s20 w700 cF4F2FF", "Segoe UI")
-    mainWnd.AddText("x24 y16 w412 h36 Background14141c", APP_NAME)
+    mainWnd.AddText("x24 y16 w330 h36 Background14141c", APP_NAME)
     mainWnd.SetFont("s9 c9A97AD", "Segoe UI")
-    mainWnd.AddText("x24 y52 w412 h18 Background14141c", "v" APP_VERSION)
-    mainWnd.AddText("x24 y76 w412 h2 Background7c5cff", "")
+    mainWnd.AddText("x24 y52 w330 h18 Background14141c", "v" APP_VERSION)
+    mainWnd.AddText("x24 y76 w330 h2 Background7c5cff", "")
     mainWnd.SetFont("s15 cF4F2FF", "Segoe UI")
-    nameCtrl := mainWnd.AddText("x24 y90 w412 h28 Background14141c", "")
+    nameCtrl := mainWnd.AddText("x24 y90 w330 h28 Background14141c", "")
     mainWnd.SetFont("s10 w600 c3DD68C", "Segoe UI")
-    channelCtrl := mainWnd.AddText("x24 y120 w412 h20 Background14141c", "")
+    channelCtrl := mainWnd.AddText("x24 y120 w330 h20 Background14141c", "")
     mainWnd.SetFont("s16 cFFFFFF", "Segoe UI")
-    playCtrl := AddButton(mainWnd, 24, 156, 412, 52, "PLAY", "7c5cff", "9480ff", "FFFFFF", OnPlay)
+    playCtrl := AddButton(mainWnd, 24, 156, 330, 52, "PLAY", "7c5cff", "9480ff", "FFFFFF", OnPlay)
     mainWnd.SetFont("s11 cF4F2FF", "Segoe UI")
-    AddButton(mainWnd, 24, 222, 198, 40, "LIBRARY", "2a2a38", "3a3a4c", "F4F2FF", ShowLibrary)
-    AddButton(mainWnd, 238, 222, 198, 40, "SETTINGS", "2a2a38", "3a3a4c", "F4F2FF", ShowSettings)
+    AddButton(mainWnd, 24, 222, 158, 40, "LIBRARY", "2a2a38", "3a3a4c", "F4F2FF", ShowLibrary)
+    AddButton(mainWnd, 196, 222, 158, 40, "SETTINGS", "2a2a38", "3a3a4c", "F4F2FF", ShowSettings)
     mainWnd.SetFont("s10 c8E8A9E", "Segoe UI")
-    statusCtrl := mainWnd.AddText("x24 y286 w412 h24 Background14141c", "Idle")
+    statusCtrl := mainWnd.AddText("x24 y286 w516 h24 Background14141c", "Idle")
     mainWnd.OnEvent("Close", HideMain)
     ApplyWindowIcon(mainWnd)
     RefreshMain()
@@ -618,10 +643,13 @@ ShowLibrary(*) {
     if IsObject(libWnd)
         return
     libWnd := MkGui("-Resize -MaximizeBox")
+    avatar := AssetFile("avatar.jpg")
+    if FileExist(avatar)
+        libWnd.AddPic("x20 y10 w36 h36", avatar)
     libWnd.SetFont("s16 w700 cF4F2FF", "Segoe UI")
-    libWnd.AddText("x20 y14 w680 h28 Background14141c", "Library")
+    libWnd.AddText("x66 y14 w634 h28 Background14141c", "Library")
     libWnd.SetFont("s10 cE8E6F2", "Segoe UI")
-    libList := libWnd.AddListView("x20 y50 w680 h230 Background14141c cE8E6F2", ["Name", "Game/App", "Channel", "Version", "Status"])
+    libList := libWnd.AddListView("x20 y54 w680 h226 Background14141c cE8E6F2", ["Name", "Game/App", "Channel", "Version", "Status"])
     libList.ModifyCol(1, 230)
     libList.ModifyCol(2, 110)
     libList.ModifyCol(3, 80)
@@ -1482,5 +1510,9 @@ RunSelfTest() {
         ExitApp(46)
     if (InStr(REPO_RAW_URL, "macrovault") = 0)
         ExitApp(47)
+    for , name in ["splash.jpg", "main-girl.jpg", "avatar.jpg"] {
+        if !FileExist(A_ScriptDir "\assets\" name)
+            ExitApp(52)
+    }
     ExitApp(0)
 }
